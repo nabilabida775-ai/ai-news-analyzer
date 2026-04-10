@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
-import { serveStatic } from 'hono/bun';
+import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
 
 const app = new Hono();
 
@@ -27,7 +28,7 @@ app.get('/map_data', (c) => {
   return c.json(points);
 });
 
-export default {
-  port: Number(process.env.PORT) || 3000,
+serve({
   fetch: app.fetch,
-};
+  port: Number(process.env.PORT) || 3000,
+});
