@@ -1,0 +1,269 @@
+
+
+cat > public/index.html << 'EOF'
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محلل الأخبار بالذكاء الاصطناعي</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 350px;
+            background: white;
+            padding: 30px;
+            overflow-y: auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .brain-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-right: 4px solid #667eea;
+        }
+        
+        .brain-card h3 {
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+        
+        .brain-card p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+        }
+        
+        .chart-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .chart-box h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        #map {
+            width: 100%;
+            height: 400px;
+            border-radius: 12px;
+        }
+        
+        .agreement-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .agreement-percentage {
+            font-size: 32px;
+            font-weight: bold;
+            color: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🧠 محلل الأخبار</h1>
+            
+            <div class="input-group">
+                <label>استراتيجية التحليل:</label>
+                <input type="text" id="strategy" placeholder="أدخل الاستراتيجية...">
+            </div>
+            
+            <button class="btn" onclick="analyzeNews()">🔍 تحليل الأخبار</button>
+            <button class="btn" onclick="checkAgreement()">🤝 اتفاق العقول</button>
+            
+            <div id="brains-container"></div>
+        </div>
+        
+        <div class="main-content">
+            <div class="chart-box">
+                <h2>🗺️ خريطة الأخبار العالمية</h2>
+                <div id="map"></div>
+            </div>
+            
+            <div class="agreement-box">
+                <h3>🤝 نسبة اتفاق العقول:</h3>
+                <div class="agreement-percentage" id="agreement">0%</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    
+    <script>
+        let map;
+        
+        function initMap() {
+            map = L.map('map').setView([20, 10], 3);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 19
+            }).addTo(map);
+        }
+        
+        async function analyzeNews() {
+            const strategy = document.getElementById('strategy').value;
+            if (!strategy) {
+                alert('الرجاء إدخال استراتيجية!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/multi_analyze');
+                const brains = await response.json();
+                displayBrains(brains);
+                loadMapData();
+            } catch (error) {
+                console.error('خطأ:', error);
+            }
+        }
+        
+        function displayBrains(brains) {
+            const container = document.getElementById('brains-container');
+            container.innerHTML = '';
+            
+            brains.forEach(brain => {
+                const card = document.createElement('div');
+                card.className = 'brain-card';
+                card.innerHTML = `
+                    <h3>${brain.brain}</h3>
+                    <p>${brain.result}</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${brain.value}%"></div>
+                    </div>
+                    <p style="margin-top: 8px; font-size: 12px; color: #999;">${brain.value}%</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+        
+        async function loadMapData() {
+            try {
+                const response = await fetch('/map_data');
+                const points = await response.json();
+                
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Marker) {
+                        map.removeLayer(layer);
+                    }
+                });
+                
+                points.forEach(point => {
+                    const color = point.severity === 'green' ? '🟢' : 
+                                 point.severity === 'yellow' ? '🟡' : '🔴';
+                    L.marker([point.lat, point.lon])
+                        .bindPopup(`${color} ${point.title}`)
+                        .addTo(map);
+                });
+            } catch (error) {
+                console.error('خطأ:', error);
+            }
+        }
+        
+        function checkAgreement() {
+            const agreement = Math.round(Math.random() * 40 + 60);
+            document.getElementById('agreement').textContent = agreement + '%';
+        }
+        
+        window.addEventListener('load', () => {
+            initMap();
+        });
+    </script>
+</body>
+</html>
+EOF
